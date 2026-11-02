@@ -1,27 +1,35 @@
-# React + TypeScript + Vite
+# 🕌 Prayer Times App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A clean React app that shows daily prayer times, fetching live data from an API.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## Expanding the ESLint configuration
+- ⏰ Daily prayer times fetched with Axios
+- ⏳ Time formatting and countdowns with Moment.js
+- 🎨 Polished UI with Material UI (MUI) components
+- 📱 Responsive layout
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## 🛠 Tech Stack
 
-- Configure the top-level `parserOptions` property like this:
+| Area | Tools |
+|---|---|
+| Library | React |
+| UI | Material UI, Emotion |
+| Data | Axios |
+| Dates | Moment.js |
 
-```js
-   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-   },
+## 🚀 Getting Started
+
+```bash
+git clone https://github.com/Eslamraafat1/Prayer-time.git
+cd Prayer-time
+npm install
+npm start
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+## 👤 Author
+
+**Eslam Raafat** — Frontend Developer & QA Engineer
+[LinkedIn](https://www.linkedin.com/in/eslamraafat-dev) · [GitHub](https://github.com/Eslamraafat1)
