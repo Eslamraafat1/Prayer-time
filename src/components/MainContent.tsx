@@ -4,156 +4,94 @@ import Stack from "@mui/material/Stack";
 import Prayer from "./Prayer";
 import ImageCard from "./ImageCard";
 import Box from "@mui/material/Box";
-import { SyntheticEvent, useEffect, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import moment from "moment";
+import {
+  PRAYER_ORDER,
+  Timings,
+  formatCountdown,
+  getNextPrayer,
+} from "../lib/nextPrayer";
 
 import "moment/dist/locale/ar";
 moment.locale("ar");
 
+const DEFAULT_CITY = "القاهرة";
+
+const PRAYER_NAMES: Record<keyof Timings, string> = {
+  fajr: "الفجر",
+  dhuhr: "الظهر",
+  asr: "العصر",
+  maghrib: "المغرب",
+  isha: "العشاء",
+};
+
+type Status = "loading" | "ready" | "error";
+
 const MainContent = () => {
-  const currentDate = new Date();
-  const currentDay = currentDate.toISOString().split("T")[0];
   const [today, setToday] = useState("");
   const [nextPrayerIndex, setNextPrayerIndex] = useState(0);
   const [remainingTime, setRemainingTime] = useState("");
-
-  const [data, setData] = useState(null);
-  const [timings, setTimings] = useState({
-    fajr: "",
-    dhuhr: "",
-    asr: "",
-    maghrib: "",
-    isha: "",
-  });
+  const [status, setStatus] = useState<Status>("loading");
+  const [timings, setTimings] = useState<Timings | null>(null);
+  const [city, setCity] = useState(DEFAULT_CITY);
+  const [failedCity, setFailedCity] = useState("");
   const [search, setSearch] = useState("");
-  const [temp, setTemp] = useState("");
 
-  const prayerArray = [
-    { key: "fajr", name: "الفجر", time: timings.fajr },
-    { key: "dhuhr", name: "الظهر", time: timings.dhuhr },
-    { key: "asr", name: "العصر", time: timings.asr },
-    { key: "maghrib", name: "المغرب", time: timings.maghrib },
-    { key: "isha", name: "العشاء", time: timings.isha },
-  ];
-
-  const getData = async () => {
-    const res = await axios(
-      `https://api.aladhan.com/v1/timingsByAddress/${currentDay}?address=القاهرة`
-    );
-
-    const times = {
-      fajr: res.data.data.timings.Fajr,
-      dhuhr: res.data.data.timings.Dhuhr,
-      asr: res.data.data.timings.Asr,
-      maghrib: res.data.data.timings.Maghrib,
-      isha: res.data.data.timings.Isha,
-    };
-
-    setData(res.data.data);
-    setTimings(times);
-  };
-
-  useEffect(() => {
-    getData();
-    const date = moment();
-    setToday(date.format("Do MMM YYYY | h:mm"));
+  const loadCity = useCallback(async (address: string) => {
+    setStatus("loading");
+    try {
+      // Aladhan expects DD-MM-YYYY; use the local date, not the UTC one.
+      const date = moment().locale("en").format("DD-MM-YYYY");
+      const res = await axios.get(
+        `https://api.aladhan.com/v1/timingsByAddress/${date}`,
+        { params: { address }, timeout: 15000 }
+      );
+      const t = res.data?.data?.timings;
+      if (!t?.Fajr || !t?.Isha) throw new Error("Missing timings");
+      setTimings({
+        fajr: t.Fajr,
+        dhuhr: t.Dhuhr,
+        asr: t.Asr,
+        maghrib: t.Maghrib,
+        isha: t.Isha,
+      });
+      setCity(address);
+      setStatus("ready");
+    } catch {
+      setFailedCity(address);
+      setStatus("error");
+    }
   }, []);
 
-  const get = async () => {
-    const res = await axios(
-      `https://api.aladhan.com/v1/timingsByAddress/${currentDay}?address=${search}`
-    );
-
-    const times = {
-      fajr: res?.data.data.timings?.Fajr,
-      dhuhr: res?.data.data.timings?.Dhuhr,
-      asr: res?.data.data.timings?.Asr,
-      maghrib: res?.data.data.timings?.Maghrib,
-      isha: res?.data.data.timings?.Isha,
-    };
-
-    setTimings(times);
-    setData(res.data.data);
-    setTemp(search);
-  };
+  useEffect(() => {
+    loadCity(DEFAULT_CITY);
+    setToday(moment().format("Do MMM YYYY | h:mm"));
+  }, [loadCity]);
 
   function searchHandler(e: SyntheticEvent) {
     e.preventDefault();
-    setData(null);
-
-    if (search !== "") {
-      get();
-
-      setSearch("");
-    } else {
+    const query = search.trim();
+    if (query === "") {
       alert("ادخل اسم المدينة");
-      getData();
+      return;
     }
+    loadCity(query);
     setSearch("");
   }
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setUpCountdownTimer();
-    }, 1000);
-    return () => {
-      clearInterval(t);
+    if (!timings) return;
+    const tick = () => {
+      const { index, remainingMs } = getNextPrayer(timings, new Date());
+      setNextPrayerIndex(index);
+      setRemainingTime(formatCountdown(remainingMs));
     };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
   }, [timings]);
-
-  const setUpCountdownTimer = () => {
-    const momentNow = moment();
-    let nextPrayer: number = 0;
-
-    if (
-      momentNow.isAfter(moment(timings.fajr, "hh:mm")) &&
-      momentNow.isBefore(moment(timings.dhuhr, "hh:mm"))
-    ) {
-      nextPrayer = 1;
-    } else if (
-      momentNow.isAfter(moment(timings.dhuhr, "hh:mm")) &&
-      momentNow.isBefore(moment(timings.asr, "hh:mm"))
-    ) {
-      nextPrayer = 2;
-    } else if (
-      momentNow.isAfter(moment(timings.asr, "hh:mm")) &&
-      momentNow.isBefore(moment(timings.maghrib, "hh:mm"))
-    ) {
-      nextPrayer = 3;
-    } else if (
-      momentNow.isAfter(moment(timings.maghrib, "hh:mm")) &&
-      momentNow.isBefore(moment(timings.isha, "hh:mm"))
-    ) {
-      nextPrayer = 4;
-    } else {
-      nextPrayer = 0;
-    }
-
-    setNextPrayerIndex(nextPrayer);
-
-    const nextPrayerObj = prayerArray[nextPrayer];
-    const nextPrayerTime = nextPrayerObj.time;
-    const nextPrayerTimeMoment = moment(nextPrayerTime, "hh:mm");
-
-    let remainingTime = moment(nextPrayerTime, "hh:mm").diff(momentNow);
-    const durationRemainingTime = moment.duration(remainingTime);
-
-    if (remainingTime < 0) {
-      const midnightDiff = moment("23:59:59", "hh:mm:ss").diff(momentNow);
-      const fajerToMidnightDiff = nextPrayerTimeMoment.diff(
-        moment("00:00:00", "hh:mm:ss")
-      );
-
-      const totalDiff = midnightDiff + fajerToMidnightDiff;
-
-      remainingTime = totalDiff;
-    }
-
-    setRemainingTime(
-      `${durationRemainingTime.seconds()}:${durationRemainingTime.minutes()}:${durationRemainingTime.hours()}`
-    );
-  };
 
   return (
     <>
@@ -162,7 +100,7 @@ const MainContent = () => {
         <Grid container>
           <Grid xs={6}>
             <div>
-              <h1>{temp !== "" ? temp : "القاهرة"}</h1>
+              <h1>{city}</h1>
               <p style={{ color: "var(--gray)" }}>{today}</p>
             </div>
           </Grid>
@@ -175,9 +113,12 @@ const MainContent = () => {
                     type="text"
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="اسم المدينة"
+                    aria-label="اسم المدينة"
                     value={search}
                   />
-                  <button className="btn">بحث</button>
+                  <button className="btn" type="submit">
+                    بحث
+                  </button>
                 </form>
               </Box>
             </Grid>
@@ -188,40 +129,61 @@ const MainContent = () => {
 
       <Divider style={{ background: `var(--gray)` }} />
 
-      {/* Preyer Cards */}
-      {data ? (
+      {/* Prayer Cards */}
+      {status === "ready" && timings ? (
         <div className="content" style={{ padding: "10px 0" }}>
           <Grid container spacing={2}>
-            {/* image */}
             <Grid xs={6} style={{ padding: "20px" }}>
               <ImageCard
                 time={remainingTime}
-                name={prayerArray[nextPrayerIndex].name}
+                name={PRAYER_NAMES[PRAYER_ORDER[nextPrayerIndex]]}
               />
             </Grid>
-            {/* image */}
 
-            {/* Times */}
             <Grid xs={6} style={{ padding: "20px" }}>
               <Stack>
-                <Prayer name="الفجر" time={timings.fajr} />
-                <Prayer name="الظهر" time={timings.dhuhr} />
-                <Prayer name="العصر" time={timings.asr} />
-                <Prayer name="المغرب" time={timings.maghrib} />
-                <Prayer name="العشاء" time={timings.isha} />
+                {PRAYER_ORDER.map((key, i) => (
+                  <Prayer
+                    key={key}
+                    name={PRAYER_NAMES[key]}
+                    time={timings[key]}
+                    active={i === nextPrayerIndex}
+                  />
+                ))}
               </Stack>
             </Grid>
-            {/* Times */}
           </Grid>
         </div>
+      ) : status === "error" ? (
+        <div className="error" role="alert">
+          <p>
+            تعذر تحميل مواعيد الصلاة لمدينة "{failedCity}". تأكد من اسم المدينة
+            أو من اتصالك بالإنترنت.
+          </p>
+          <div className="error-actions">
+            <button
+              className="btn"
+              type="button"
+              onClick={() => loadCity(failedCity)}
+            >
+              إعادة المحاولة
+            </button>
+            {failedCity !== city && (
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={() => loadCity(city)}
+              >
+                عرض {city}
+              </button>
+            )}
+          </div>
+        </div>
       ) : (
-        <h3 className="loading"></h3>
+        <div className="loading" role="status" aria-label="جار التحميل"></div>
       )}
-      {/* Preyer Cards */}
     </>
   );
 };
 
 export default MainContent;
-
-// 1:00:20

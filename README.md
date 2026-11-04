@@ -52,12 +52,14 @@ This is a **practice project** from my 2023 front-end training. I built it to pr
 ## Features
 
 - **Today's prayer times.** On load, the app requests today's timings for Cairo (القاهرة) from the [Aladhan API](https://aladhan.com/prayer-times-api) (`/v1/timingsByAddress`) and shows Fajr, Dhuhr, Asr, Maghrib and Isha.
-- **Search by city.** Type a city name and submit the form to load that city's timings. An empty search shows an alert and reloads Cairo.
-- **Next-prayer countdown.** A card shows the name of the next prayer and a timer that updates every second.
+- **Search by city.** Type a city name and submit the form to load that city's timings. An empty search shows an alert and keeps the current city.
+- **Error state with retry.** If a city can't be found or the request fails, the app shows an error message with a **Retry** button (and a button to go back to the last city that loaded) instead of an endless loader.
+- **Next-prayer countdown.** A card shows the name of the next prayer and an `HH:MM:SS` timer that updates every second; the next prayer is also highlighted in the list. After Isha it counts down to the next day's Fajr.
 - **Arabic date.** The current date is formatted with Moment.js in the Arabic locale.
 - **Animated background.** The page background cycles through mosque photos with a CSS keyframe animation.
 - **Responsive layout.** Media queries stack the search form and the cards into one column on small screens.
 - A CSS loading spinner shows while data is being fetched.
+- Background photos are resized to at most 1920 px wide and recompressed (about 10 MB of images down to 1.8 MB).
 
 ## Tech stack
 
@@ -83,16 +85,20 @@ This is a **practice project** from my 2023 front-end training. I built it to pr
     ├── main.tsx
     ├── App.tsx                  # MUI Container around the main view
     ├── index.css                # theme variables, RTL layout, background animation, media queries
-    ├── assets/                  # background and card photos, logo
+    ├── assets/                  # background and card photos
+    ├── lib/
+    │   └── nextPrayer.ts        # pure next-prayer / countdown calculation
     └── components/
-        ├── MainContent.tsx      # API calls, city search, countdown logic
+        ├── MainContent.tsx      # API calls, city search, loading/error states
         ├── ImageCard.tsx        # "next prayer" card with the timer
         └── Prayer.tsx           # one row: prayer name + time
+tests/
+└── nextPrayer.test.ts           # node:test unit tests for the countdown logic
 ```
 
 ## Getting started
 
-**Requirements:** Node.js 18 or newer and npm.
+**Requirements:** Node.js 22 or newer and npm.
 
 ```bash
 git clone https://github.com/Eslamraafat1/Prayer-time.git
@@ -107,6 +113,7 @@ npm run dev        # http://localhost:5173
 | `npm run build` | Type-check with `tsc`, then build to `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run the unit tests for the next-prayer logic (`node:test`, no extra dependencies) |
 
 No API key is needed: the Aladhan API is public.
 
@@ -114,11 +121,15 @@ No API key is needed: the Aladhan API is public.
 
 The app is deployed on **Netlify** as a static Vite build: [live demo](https://65452b9c868717229dab4a94--glittery-dango-a5ae2c.netlify.app/).
 
-## What I would improve next
+## Testing
 
-- Fix the countdown after Isha. Right now the time until the next day's Fajr is not calculated correctly.
-- Show an error message when a city isn't found, instead of leaving the loader on screen.
-- Compress the background photos, which are 1–2 MB each, and remove the unused images in `src/assets/`.
+`tests/nextPrayer.test.ts` has 8 unit tests for the pure `getNextPrayer` / `formatCountdown` functions in `src/lib/nextPrayer.ts`: before Fajr, between prayers, exactly at a prayer time, **after Isha (counts down to the next day's Fajr)**, just before midnight, timezone-suffixed times and zero-padding. Run them with `npm test`.
+
+## Known limitations
+
+- After Isha, the countdown uses **today's** Fajr time as the next day's Fajr (they usually differ by about a minute).
+- The countdown uses your device's clock and time zone. If you search a city in a different time zone, its prayer times are shown in that city's local time, but the countdown is not adjusted.
+- The date under the city name is set when the page loads and isn't refreshed while the page stays open.
 
 ## Author
 

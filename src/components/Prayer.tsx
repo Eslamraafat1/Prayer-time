@@ -3,11 +3,16 @@ import { Stack } from "@mui/material";
 type Props = {
   name: string;
   time: string;
+  active?: boolean;
 };
 
 const Prayer = (props: Props) => {
   return (
-    <div className="preyer-card" style={{ marginBottom: "20px" }}>
+    <div
+      className={`preyer-card${props.active ? " active" : ""}`}
+      aria-current={props.active ? "true" : undefined}
+      style={{ marginBottom: "20px" }}
+    >
       <Stack
         direction="row"
         style={{

@@ -196,3 +196,36 @@ body::after {
     width: 100%;
   }
 }
+.error {
+  margin: 30px auto;
+  max-width: 600px;
+  padding: 20px;
+  text-align: center;
+  background: var(--card-bg);
+  border: 1px solid var(--dark-gray);
+  border-radius: 10px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.error .btn {
+  padding: 10px 20px;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  background: var(--secondary);
+  color: var(--white);
+  border-radius: 5px;
+  font-family: "Cairo", sans-serif;
+}
+
+.error .btn-outline {
+  background: transparent;
+  border: 1px solid var(--gray);
+}

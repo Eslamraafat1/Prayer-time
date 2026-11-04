@@ -8,10 +8,10 @@ type Props = {
 const ImageCard = (props: Props) => {
   return (
     <div className="image-card">
-      <img src={img} alt="img" />
+      <img src={img} alt="مسجد" />
       <div className="next-prayer">
         <p>متبقي علي صلاة {props.name}</p>
-        <h1>{props.time}</h1>
+        <h1 dir="ltr" style={{ textAlign: "right" }}>{props.time}</h1>
       </div>
     </div>
   );
